@@ -25,8 +25,6 @@ R-Pubs link [here](https://rpubs.com/Geoffrey_Chege/914136).
 R-Pubs link [here](https://rpubs.com/Geoffrey_Chege/914142).
 
 ### Description
-- I am a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax).
-
 - I am expected to find out the associations between products.
 
 ### Experimental Design
@@ -41,8 +39,6 @@ R-Pubs link [here](https://rpubs.com/Geoffrey_Chege/914142).
 R-Pubs link [here](https://rpubs.com/Geoffrey_Chege/914146)
 
 ### Description
-- I am a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax).
-
 - I am expected to find out if there are any anomalies in the data.
 
 ### Experimental design
