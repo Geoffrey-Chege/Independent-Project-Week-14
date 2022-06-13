@@ -1,0 +1,146 @@
+---
+title: "Anomaly Detection"
+author: "Geoffrey Chege"
+date: '2022-06-10'
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Introduction
+
+## Defining the question
+
+- I am a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax).
+
+- I am expected to find out if there are any anomalies in the data.
+
+## Metric for success
+
+- Be able to effectively detect anomalies in the products.
+
+## Understanding the context
+
+- Carrefour operates different store formats, as well as multiple online offerings to meet the growing needs of its diversified customer base.
+- In line with the brand’s commitment to provide the widest range of quality products and value for money, Carrefour offers an unrivalled choice of more than 500,000 food and non-food products, and a locally inspired exemplary customer experience to create great moments for everyone every day.
+
+## Recording the experimental design
+
+- Problem Definition
+- Anomaly Detection
+- Provide insights based on my analysis
+- Provide recommendations
+
+## Data Relevance
+
+- Link to the dataset: http://bit.ly/CarreFourSalesDataset
+
+# 2. Loading libraries and dataset
+
+```{r}
+# Load tidyverse and anomalize
+library(tidyverse)
+library(anomalize,warn.conflicts = FALSE)
+library(tibbletime)
+```
+
+- Data:
+
+```{r}
+# read data
+forecast <- read.csv("C:/Users/user/Downloads/Supermarket_Sales_Forecasting - Sales.csv")
+head(forecast)
+```
+
+# 3. Anomaly Detection
+
+## Overview
+
+- We are to check whether there are any anomalies in the given sales dataset. The objective of this task being fraud detection.
+
+```{r}
+# checking the structure of our data
+str(forecast)
+```
+
+
+```{r}
+# checking the shape
+dim(forecast)
+```
+
+- We have 1000 observations and 2 variables.
+
+```{r}
+# converting variables to our preferred format
+forecast$Date <- as.Date(forecast$Date, "%m/%d/%Y")
+```
+
+
+```{r}
+str(forecast)
+```
+
+## Visualization
+
+```{r}
+# visualizing our sales
+hist(forecast$Sales,col="blue")
+```
+
+
+
+```{r}
+# Sales distribution over time
+library(ggplot2)
+ggplot(data = forecast, aes(x = Date, y = Sales)) +
+      geom_bar(stat = "identity", fill = "green") +
+      labs(title = "Sales distribution",
+           x = "Date", y = "Sales(ksh)")
+```
+
+
+```{r}
+# Ordering the data by Date
+forecast = forecast %>% arrange(Date)
+head(forecast)
+```
+
+
+```{r}
+# Since our data has many records per day,
+# We get the average per day, so that the data
+forecast = aggregate(Sales ~ Date , forecast , mean)
+head(forecast)
+```
+
+
+
+```{r}
+
+# tbl_time have a time index that contains information about which column
+
+# should be used for time-based subsetting and other time-based manipulation,
+
+forecast= tbl_time(forecast, Date) # Converting data frame to a tibble time (tbl_time)
+class(forecast)
+```
+
+- I will use the following functions to detect and visualize anomalies:
+
+```{r}
+forecast %>%
+    time_decompose(Sales) %>%
+    anomalize(remainder) %>%
+    time_recompose() %>%
+    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.5)
+```
+
+# 4. Conclusion
+
+- There were no anomalies detected in the data.

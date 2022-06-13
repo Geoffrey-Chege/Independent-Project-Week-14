@@ -1,0 +1,634 @@
+---
+title: "Dimensionality Reduction & Feature Selection"
+author: "Geoffrey Chege"
+date: '2022-06-10'
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Introduction
+
+## 1.1 Defining the question
+
+- I am a Data analyst at Carrefour Kenya and I am currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax).
+
+## 1.2 Metric for success
+
+- Be able to reduce the dataset to a low dimensional dataset using the t-SNE algorithm or PCA.
+
+## 1.3 Understanding the context
+
+- Carrefour operates different store formats, as well as multiple online offerings to meet the growing needs of its diversified customer base.
+- In line with the brand’s commitment to provide the widest range of quality products and value for money, Carrefour offers an unrivalled choice of more than 500,000 food and non-food products, and a locally inspired exemplary customer experience to create great moments for everyone every day.
+
+## 1.4 Recording the experimental design
+
+- Problem Definition.
+- Loading the necessary libraries and the dataset.
+- Data Cleaning.
+- Exploratory Data Analysis:
+  - Univariate Analysis.
+  - Bivariate Analysis.
+- Part 1: Dimensionality Reduction using t-Distributed Stochastic Neighbor Embedding (t-sne).
+- Part 2: Feature Engineering using unsupervised learning.
+- Recommendations.
+
+## 1.5 Data Relevance
+
+- Link to the dataset: http://bit.ly/SupermarketDatasetII
+
+# 2. Loading the necessary libraries and the dataset.
+
+```{r}
+
+library(ggplot2)
+library(Rtsne)
+library(e1071)
+library(lattice)
+library(corrplot)
+library(caret)
+library(superml)
+library(CatEncoders)
+library(FSelector)
+
+library(tidyr)
+library(magrittr)
+library(warn = -1)
+library(RColorBrewer)
+
+library(DataExplorer)
+library(Hmisc)
+library(pastecs)
+library(psych)
+library(factoextra)
+library(dplyr)
+library(ggcorrplot)
+library(clustvarsel)
+library(mclust)
+library("cluster")
+
+```
+
+
+
+```{r}
+
+df <- read.csv("C:/Users/user/Downloads/Supermarket_Dataset_1 - Sales Data.csv")
+head(df)
+
+```
+
+# 3. Data Cleaning.
+
+## Checking the structure of the data.
+
+```{r}
+
+str(df)
+
+```
+
+- For the analysis, I will need to convert the character columns into factors.
+
+## Data Cleaning:
+
+```{r}
+
+df$Invoice.ID <- as.factor(df$Invoice.ID)
+df$Branch <- as.factor(df$Branch)
+df$Customer.type <- as.factor(df$Customer.type)
+df$Gender <- as.factor(df$Gender)
+df$Product.line <- as.factor(df$Product.line)
+df$Payment <- as.factor(df$Payment)
+df$Date <- as.Date(df$Date, format = "%m/%d/%y")
+
+str(df) #confirming the changes
+```
+
+- Next, I will check for duplicates:
+
+```{r}
+# checking for duplicates
+df[duplicated(df), ]
+```
+
+- There are no duplicates in the dataset.
+
+- Checking for mssing values:
+
+```{r}
+# checking for missing values
+colSums(is.na(df))
+```
+
+- There are no missing values in the dataset.
+
+### Outliers
+
+- I will use box plots to check for outliers.
+
+#### Boxplot for "unit.price" column
+
+```{r boxplot unit.price, echo=FALSE}
+boxplot(df$Unit.price,
+main = "unit.price column Boxplot",  # Titling the boxplot
+xlab = "unit.price",                # labelling the axis
+col = "blue",                  # setting the colour
+border = "black",              # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are no outliers in the "unit.price" column.
+
+#### Boxplot for "Tax" column
+
+```{r boxplot Tax, echo=FALSE}
+boxplot(df$Tax,
+main = "Tax column Boxplot",  # Titling the boxplot
+xlab = "Tax",                # labelling the axis
+col = "brown",                  # setting the colour
+border = "black",              # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are outliers in the "Tax" column. I will keep them in my analysis because they represent true values in the data.
+
+#### Boxplot for "Cogs" column
+
+```{r boxplot cogs, echo=FALSE}
+boxplot(df$cogs,
+main = "Cogs column Boxplot",        # Titling the boxplot
+xlab = "Cogs",                # labelling the axis
+col = "orange",              # setting the colour
+border = "black",            # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are outliers in the "Cogs" column. I will keep them in my analysis because they represent true values in the data.
+
+#### Boxplot for "gross.margin.percentage" column
+
+```{r gross.margin.percentage, echo=FALSE}
+boxplot(df$gross.margin.percentage,
+main = "gross.margin.percentage Boxplot",      # Titling the boxplot
+xlab = "gross.margin.percentage",              # labelling the axis
+col = "red",                                # setting the colour
+border = "black",                           # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are no outliers in the "Tax" column.
+
+#### Boxplot for "gross.income" column
+
+```{r gross.income, echo=FALSE}
+boxplot(df$gross.income,
+main = "gross.income Boxplot",      # Titling the boxplot
+xlab = "gross.income",              # labelling the axis
+col = "green",                        # setting the colour
+border = "black",                   # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are outliers in the "gross.income" column. I will keep them in my analysis because they represent true values in the data.
+
+#### Boxplot for "Rating" column
+
+```{r Rating, echo=FALSE}
+boxplot(df$Rating,
+main = "Rating Boxplot",      # Titling the boxplot
+xlab = "Rating",              # labelling the axis
+col = "purple",                                # setting the colour
+border = "black",                           # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are no outliers in the "Rating" column.
+
+#### Boxplot for "Total" column
+
+```{r Total, echo=FALSE}
+boxplot(df$Total,
+main = "Total Boxplot",      # Titling the boxplot
+xlab = "Total",              # labelling the axis
+col = "yellow",                                # setting the colour
+border = "black",                           # setting the colour of the borders
+horizontal = TRUE,
+notch = TRUE
+)
+```
+
+- There are outliers in the "Total" column. I will keep them in my analysis because they represent true values in the data.
+
+# 4. Exploaratory Data Analysis.
+
+## 4.1 Univariate Analysis.
+
+### Distributions
+
+#### Histograms:
+
+```{r}
+plot_histogram(df)
+```
+
+- From the histograms, we get the following insights:
+  - Cogs, gross.income, Tax and Total columns are positively skewed, meaning we expect the mean will be greater than the median.
+  - Unit.price and Rating columns have fairly even distribution.
+
+#### Bar Plots:
+
+```{r}
+plot_bar(df)
+```
+
+- From the bar plots, we observe that Branch, Customer.type, Gender, Product.line and Payment columns have an even distribution.
+ 
+### Description and Summary of Data:
+
+- Description:
+
+```{r}
+
+describe(df)
+
+```
+
+- Summary:
+
+```{r}
+
+summary(df)
+
+```
+
+### A function to get the mode
+
+```{r}
+# a function for code
+mode <- function(x){
+  uniqx <- unique(x)
+  uniqx[which.max(tabulate(match(x, uniqx)))]
+}
+```
+
+#### Unit.price Column
+
+- From the summary and description, we can gather the following about the Unit.price column:
+  - Mean: 55.67
+  - Median: 55.23
+  - Skewness: 0.01
+  - Kurtosis: -1.22
+
+- The mode is:
+
+```{r}
+mode(df$Unit.price)
+```
+
+#### Quantity Column
+
+- From the summary and description, we can gather the following about the Quantity column:
+  - Mean: 5.51
+  - Median: 5.00
+  - Skewness: 0.01
+  - Kurtosis: -1.22
+
+- The mode is:
+
+```{r}
+mode(df$Quantity)
+```
+
+#### Tax Column
+
+- From the summary and description, we can gather the following about the Tax column:
+  - Mean: 15.3794
+  - Median: 12.0880
+  - Skewness: 0.89
+  - Kurtosis: -0.09
+
+- The mode is:
+
+```{r}
+mode(df$Tax)
+```
+
+#### Cogs column
+
+- From the summary and description, we can gather the following about the Cogs column:
+  - Mean: 307.59
+  - Median: 241.76
+  - Skewness: 0.89
+  - Kurtosis: -0.09
+
+- The mode is:
+
+```{r}
+mode(df$cogs)
+```
+
+#### gross.income column
+
+- From the summary and description, we can gather the following about the gross.income column:
+  - Mean: 15.3794
+  - Median: 12.0880
+  - Skewness: 0.89
+  - Kurtosis: -0.09
+
+- The mode is:
+
+```{r}
+mode(df$gross.income)
+```
+
+#### Rating column
+
+- From the summary and description, we can gather the following about the Rating column:
+  - Mean: 6.973
+  - Median: 7.000
+  - Skewness: 0.01
+  - Kurtosis: -1.16
+ 
+- The mode is:
+
+```{r}
+mode(df$Rating)
+```
+
+#### Total column
+
+- From the summary and description, we can gather the following about the Total column:
+  - Mean: 322.97
+  - Median: 253.85
+  - Skewness: 0.89
+  - Kurtosis: -0.09
+ 
+- The mode is:
+
+```{r}
+mode(df$Total)
+```
+
+## 4.2 Bivariate Analysis
+
+```{r product line vs Total Price}
+ggplot(df, aes(x=Product.line, y=Total)) +
+  geom_point()
+```
+
+- Fashion Accessories have the highest Total prices while health and beauty products have lower prices.
+
+```{r Gendered Expenses}
+ggplot(df ,aes(Gender, Total)) +
+  geom_point()
+```
+
+- Total Price is equally distributed in terms of gender
+
+```{r Payment vs Total Price}
+ggplot(df, aes(Payment, Total)) +
+  geom_point()
+```
+
+- The payment methods are nearly identical for the total prices of items at checkouts, with Credit card payments being used for more expensive transactions.
+
+```{r Gross Income vs Total}
+ggplot(df, aes(gross.income, Total)) +
+  geom_point()
+```
+
+- There is a positive linear relationship between the total at checkout and the consumers gross income.
+
+```{r Customer type vs Total}
+ggplot(df, aes(Customer.type , Total)) +
+  geom_point()
+```
+
+- Members and non members have a nearly equal distribution in expenditure with Members having no breaks in prices.
+
+```{r Tax vs Total}
+ggplot(df, aes(Tax, Total)) +
+  geom_point()
+```
+
+- There is a positive linear relationship between tax and total price. As expected, the higher the tax on items, the more they cost.
+
+```{r Unit Price vs Total}
+ggplot(df, aes(Unit.price, Total)) +
+  geom_point()
+```
+
+- There are several positive linear relationships with the Unit Price variable: the higher it is the higher the total price is.
+
+### Heatmap
+
+```{r heatmap}
+# Heat map
+# Checking the relationship between the variables
+
+
+# Using Numeric variables only
+numeric_tbl <- df %>%
+  select_if(is.numeric) %>%
+  select(Unit.price, Tax, cogs, gross.income, Rating, Total)
+
+# Calculate the correlations
+corr <- cor(numeric_tbl, use = "complete.obs")
+ggcorrplot(round(corr, 2),
+           type = "full", lab = T)
+```
+
+- The following variables show strong correlation:
+  - Unit Price with Tax, cogs, gross.income and Total.Strong correlation of 0.63.
+  - Tax with cogs, gross.income and Total. Very strong correlation of 1.
+  - gross.income to Unit.price, Tax, cogs and Total. Very strong correlation of 1.
+
+# 5. Part 1: Dimensionality Reduction
+
+- This section of the project entails reducing the dataset to a low dimensional dataset using the t-SNE algorithm or PCA. I will perform analysis and provide insights gained.
+
+```{r Label Encoding categorical columns}
+
+# Label Encoding branch column and storing in a copy
+branch <- LabelEncoder.fit(df$Branch)
+df$Branch <- transform(branch, factor(df$Branch))
+
+# Label Encoding Gender column and storing in a copy
+gender <- LabelEncoder.fit(df$Gender)
+df$Gender <- transform(gender, factor(df$Gender))
+
+# Label Encoding Customer.type column and storing in a copy
+customer <- LabelEncoder.fit(df$Customer.type)
+df$Customer.type <- transform(customer, factor(df$Customer.type))
+
+# Label Encoding product.line column and storing in a copy
+product <- LabelEncoder.fit(df$Product.line)
+df$Product.line <- transform(product, factor(df$Product.line))
+
+# Label Encoding payment column and storing in a copy
+pay <- LabelEncoder.fit(df$Payment)
+df$Payment <- transform(pay, factor(df$Payment))
+
+```
+
+
+```{r}
+
+# for plotting
+
+colors = rainbow(length(unique(df$Total)))
+names(colors) = unique(df$Total)
+
+```
+
+```{r building the model}
+
+# Executing the algorithm on curated data
+model <- Rtsne(df, dims=2, perplexity=30, verbose= TRUE, max_iter=500)
+
+# getting the duration of the execution
+
+exeTimeTsne <- system.time(Rtsne(df, dims = 2, perplexity=30, verbose=TRUE, max_iter = 500))
+
+summary(model)
+```
+
+```{r viewing output}
+head(model$Y)
+```
+
+```{r visualizing results}
+
+plot(model$Y, t='n', main="Output of TSNE")
+text(model$Y, labels=df$Total, col=colors[df$Total] )
+
+```
+
+
+
+# 6. Part 2: Feature Selection
+
+## 6.1 Filter Methods
+
+```{r}
+# Using Numeric variables only
+numeric_table <- df %>%
+  select_if(is.numeric) %>%
+  select(Unit.price, Tax, cogs, gross.income, Rating, Total)
+```
+
+
+
+```{r correlation method}
+
+corrMat <- cor(numeric_table)
+
+# highly correlated features
+high <- findCorrelation(corrMat, cutoff = 0.75)
+
+# names of highly correlated features
+names(numeric_table[, high])
+```
+
+```{r}
+#  Removing Tax, cogs and gross.income
+numeric_table2 <- df %>%
+  select_if(is.numeric) %>%
+  select(Unit.price, Rating, Total)
+```
+
+
+
+```{r comparison after dropping high}
+
+# data set without highly correlated variables
+c2 <- numeric_table[-high]
+
+# plotting
+par(mfrow = c(1, 2))
+
+corrplot(corrMat, order = "hclust")
+corrplot(cor(c2), order = "hclust")
+```
+
+## 6.2 Feature Ranking
+
+```{R}
+# From the FSelector package, we use the correlation coefficient as a unit of valuation. 
+# This would be one of the several algorithms contained 
+# in the FSelector package that can be used rank the variables.
+# ---
+# 
+Scores <- linear.correlation(Total~.,numeric_table)
+Scores
+
+```
+
+
+```{R}
+# From the output above, we observe a list containing 
+# rows of variables on the left and score on the right. 
+# In order to make a decision, we define a cutoff 
+# i.e. suppose we want to use the top 5 representative variables, 
+# through the use of the cutoff.k function included in the FSelector package. 
+# Alternatively, we could define our cutoff visually 
+# but in cases where there are few variables than in high dimensional datasets.
+# 
+# cutoff.k: The algorithms select a subset from a ranked attributes. 
+# ---
+#
+Subset <- cutoff.k(Scores, 4)
+as.data.frame(Subset)
+
+```
+
+
+```{R}
+# We could also set cutoff as a percentage which would indicate 
+# that we would want to work with the percentage of the best variables.
+# ---
+#
+Subset2 <-cutoff.k.percent(Scores, 0.4)
+as.data.frame(Subset2)
+
+```
+
+
+
+```{R}
+# Instead of using the scores for the correlation coefficient, 
+# we can use an entropy - based approach as shown below;
+# ---
+# 
+Scores2 <- information.gain(Total~., numeric_table)
+
+# Choosing Variables by cutoffSubset <- cutoff.k(Scores2, 5)
+# ---
+# 
+Subset3 <- cutoff.k(Scores2, 5)
+as.data.frame(Subset3)
+
+```
+
+# 7. Conclusion
+
+- Using Feature Ranking method with information gain of all variables being used as a metric of comparison, the Branch, Customer Type, Gender, Product Line and Unit Price columns would be the best to use for modeling a regressor with respect to Rating.

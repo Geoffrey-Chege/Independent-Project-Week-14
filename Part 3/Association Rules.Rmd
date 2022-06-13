@@ -1,0 +1,201 @@
+---
+title: "Association Rules"
+author: "Geoffrey Chege"
+date: '2022-06-10'
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Introduction
+
+## Defining the question
+
+- I am a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax).
+
+- I am expected to find out the associations between products.
+
+## Metric for success
+
+- Be able to effectively identify associations between the different products
+
+## Understanding the context
+
+- Carrefour operates different store formats, as well as multiple online offerings to meet the growing needs of its diversified customer base.
+- In line with the brand’s commitment to provide the widest range of quality products and value for money, Carrefour offers an unrivalled choice of more than 500,000 food and non-food products, and a locally inspired exemplary customer experience to create great moments for everyone every day.
+
+## Recording the experimental design
+
+- Problem Definition
+- Association Analysis
+- Provide insights based on my analysis
+- Provide recommendations
+
+## Data Relevance
+
+Link to the dataset: http://bit.ly/SupermarketDatasetII
+
+# 2. Installing packages and loading libraries
+
+```{r eval=FALSE, include=TRUE}
+# Installing the necessary packages
+
+install.packages(c("arules", "tidyverse"))
+```
+
+
+```{r}
+# Loading the libraries
+
+library(arules)
+library(tidyverse)
+```
+
+
+# 3. Loading the dataset
+
+```{r}
+# Reading the dataset
+
+assos <- read.transactions("C:/Users/user/Downloads/Supermarket_Sales_Dataset II Par 3.csv", sep = ",", rm.duplicates = TRUE)
+
+assos
+```
+
+
+```{r}
+# Verifying the object's class
+
+class(assos)
+```
+
+
+```{r}
+
+# Previewing first 5 transactions
+
+inspect(assos[1:5])
+```
+
+
+```{r}
+# Getting a summary of the transactions
+
+summary(assos)
+```
+
+# 4. Association Rules.
+
+```{r}
+# Plotting the most frequent items both with and without setting the support lower limit
+
+options(repr.plot.width = 15, repr.plot.height = 10)
+
+par(mfrow = c(1, 2))
+
+itemFrequencyPlot(assos, topN = 10,col="lightblue", main = "Frequency plot (default)", cex = 1.5, cex.main= 1.75, cex.lab=1.5, cex.axis=1.2)
+
+itemFrequencyPlot(assos, support = 0.1,col="orange", main = "Frequency plot(supp=0.1)", cex = 1.5, cex.main= 1.75, cex.lab=1.5, cex.axis=1.2)
+```
+
+
+```{r}
+# Building a model based on association rules using the apriori function
+# supp = 0.001, conf = 0.8
+
+rules <- apriori (assos, parameter = list(supp = 0.001, conf = 0.8))
+rules
+```
+
+
+```{r}
+# Building a model based on association rules using the apriori function
+# supp = 0.002, conf = 0.8
+
+rules1 <- apriori (assos, parameter = list(supp = 0.002, conf = 0.8))
+rules1
+```
+
+
+```{r}
+# Building a model based on association rules using the apriori function
+# supp = 0.001, conf = 0.6
+
+rules2 <- apriori (assos, parameter = list(supp = 0.001, conf = 0.6))
+rules2
+```
+
+- I will use a model with 74 rules.
+
+```{r}
+# Observing rules built in our model i.e. first 10 model rules
+
+inspect(rules[1:10])
+```
+
+
+```{r}
+# Inspecting the first 5 rules with the highest lift
+
+inspect(head(rules, n = 5, by = "lift"))
+```
+
+
+```{r}
+# Inspecting the first 5 rules with the highest confidence
+
+inspect(head(rules, n = 5, by = "confidence"))
+```
+
+
+```{r}
+# Looking at the least popular transactions
+
+itm <- itemFrequency(assos, type = "relative")
+head(sort(itm), n = 10)
+```
+
+
+```{r}
+# We may want to make a promotion to increase the sale of Tea
+# Let us look at what people buy after buying tea
+
+tea = subset(rules, subset = lhs %pin% "tea")
+
+# Then order by confidence
+tea = sort(tea, by="confidence", decreasing=TRUE)
+inspect(tea[1:5])
+```
+
+
+```{r}
+# We may want to make a promotion to increase the sale of ground beef
+# Let us look at what people buy after buying ground beef
+
+beef = subset(rules, subset = lhs %pin% "ground beef")
+beef
+
+# Then order by confidence
+beef = sort(beef, by="confidence", decreasing=TRUE)
+inspect(beef[1:5])
+```
+
+
+# 5. Insights
+
+- The insights that can be made from the analysis are as follows:
+  - The three most frequently bought items are mineral water, eggs and spaghetti.
+  - The 3 least frequently bought items are water spray, napkins and cream. Tea is also among the least frequently purchased items.
+  - Ground beef, frozen vegetables and pancakes fell off the most frequently bought items list after support was set to 0.1.
+
+
+# 6. Recommendations
+
+- In light of the above insights, the following recommendations can be made:
+  - To increase the sale of tea, there could be a promotion where tea is sold with milk, eggs or cookies.
+  - To increase the sale of ground beef, an offer can be given where ground beef us sold with say, a free bottle of mineral water.
