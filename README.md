@@ -1,0 +1,2 @@
+# Independent-Project-Week-14
+I am a Data analyst at Carrefour Kenya and am currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). My project has been divided into four parts where I will explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on my insights.
