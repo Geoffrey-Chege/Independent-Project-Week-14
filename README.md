@@ -1,4 +1,4 @@
-# Supervised-and-Unsupervised-Learning
+# Applying Unsupervised Learning algorithms to solving business problems
 
 ## Part 1 and 2: Dimensionality Reduction & Feature Selection
 
